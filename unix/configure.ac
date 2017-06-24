@@ -54,6 +54,9 @@ AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_SRCDIR([unix/disp_text.cpp])
 
 # Additional autoconf macros.
+# Those required by other macros go first.
+m4_include([unix/config/ax_require_defined.m4])
+# The remainder we're sorting alphabetically.
 m4_include([unix/config/acx_pthread.m4])
 m4_include([unix/config/ax_arg_enable.m4])
 m4_include([unix/config/ax_arg_with.m4])
