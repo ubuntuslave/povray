@@ -188,11 +188,8 @@ namespace povwin
 
 #ifndef _WIN64
   inline void DebugBreak() { _asm _emit 0cch } // rather than use the windows one
-  inline POV_LONG RDTSC(){ _asm _emit 0Fh _asm _emit 31h }
-  #define READ_PROFILE_TIMER RDTSC()
 #else
   inline void DebugBreak() {}
-  #define READ_PROFILE_TIMER 0
 #endif
 }
 #ifdef __INTEL_COMPILER
