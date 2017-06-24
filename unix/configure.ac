@@ -5,7 +5,7 @@
 #
 # ---------------------------------------------------------------------------
 # Persistence of Vision Ray Tracer ('POV-Ray') version 3.7.
-# Copyright 1991-2013 Persistence of Vision Raytracer Pty. Ltd.
+# Copyright 1991-2017 Persistence of Vision Raytracer Pty. Ltd.
 #
 # POV-Ray is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -69,6 +69,7 @@ m4_include([unix/config/ax_check_openexr.m4])
 m4_include([unix/config/ax_compare_version.m4])
 m4_include([unix/config/ax_compiler_vendor.m4])
 m4_include([unix/config/ax_compiler_version.m4])
+m4_include([unix/config/ax_cxx_compile_stdcxx.m4])
 m4_include([unix/config/ax_fix_incorrect_path.m4])
 m4_include([unix/config/ax_prog_ld_static.m4])
 m4_include([unix/config/ax_x86_arch.m4])
@@ -205,6 +206,7 @@ AC_LINK_IFELSE([AC_LANG_PROGRAM],
   ]
 )
 AC_PROG_CXXCPP
+AX_CXX_COMPILE_STDCXX(11)
 
 AX_COMPILER_VENDOR
 AX_COMPILER_VERSION
