@@ -43,19 +43,6 @@
 
 // lseek64 is natively supported on GNU/Linux systems.
 
-#if defined(_POSIX_V6_LPBIG_OFFBIG) || defined(_POSIX_V6_LP64_OFF64)
-    // long is at least 64 bits.
-    #define POV_LONG long
-#elif defined(_POSIX_V6_ILP32_OFFBIG) || defined(_POSIX_V6_ILP32_OFF32)
-    // long is 32 bits.
-    #define POV_LONG long long
-#else
-    // Unable to detect long size at compile-time, assuming less than 64 bits.
-    #define POV_LONG long long
-#endif
-
-#define POV_ULONG unsigned POV_LONG
-
 #define MACHINE_INTRINSICS_H <x86intrin.h>
 #define ALIGN32 __attribute__ ((aligned(32)))
 

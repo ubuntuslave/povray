@@ -40,6 +40,8 @@
 
 #include "syspovconfigbase.h"
 
+#include <cstdint>
+
 #include <limits>
 
 #include <boost/version.hpp>
@@ -122,13 +124,13 @@
 ///
 /// @name Fundamental Data Types
 ///
-/// The following macros define essential data types. It is recommended that system-specific
-/// configurations always override the defaults; although POV-Ray will make a solid guess as to
-/// which type fits the requirements, the algorithm may fail on some exotic systems.
+/// The following macros define essential data types. It is generally recommended that
+/// system-specific configurations leave these at their defaults, unless building a special binary
+/// to meet unusual requirements.
 ///
 /// @compat
-///     The automatic type detection is almost certain to fail on systems that employ padding bits
-///     and/or do not use two's complement format for negative values.
+///     On systems that do not use two's complement format for negative values, it may be necessary
+///     to define some these data types in the system-specific configuration.
 ///
 /// @{
 
@@ -137,18 +139,18 @@
 ///
 /// @attention
 ///     Some legacy portions of the code may rely on this type to be _exactly_ 8 bits wide,
-///     without padding, and use two's complement format for negative values.
+///     have no padding bits, and use two's complement format for negative values.
 ///
 #ifndef POV_INT8
     #if defined INT8_MAX
-        // data type exactly matching the requirements, as defined in the C <stdint.h> or C++11 <cstdint> header.
+        // Data type exactly matching the requirements, as defined in the C++11 `<cstdint>` header.
         #define POV_INT8 int8_t
-    #elif defined INT_LEAST8_MAX
-        // data type matching or exceeding the requirements, as defined in the C <stdint.h> or C++11 <cstdint> header.
-        #define POV_INT8 int_least8_t
+    #elif INT_LEAST8_MIN == -127
+        // The C++11 standard allows the range of `int_leastN_t` to exclude -2^(N-1).
+        #error "Data type auto-detection failed; 'POV_INT8' must be defined explicitly by system-specific configuration."
     #else
-        // char is the smallest type guaranteed by the C++ standard to be at least 8 bits wide
-        #define POV_INT8 signed char
+        // Data type matching or exceeding the requirements, as defined in the C++11 `<cstdint>` header.
+        #define POV_INT8 int_least8_t
     #endif
 #endif
 
@@ -160,16 +162,8 @@
 ///     and have no padding bits.
 ///
 #ifndef POV_UINT8
-    #if defined UINT8_MAX
-        // data type exactly matching the requirements, as defined in the C <stdint.h> or C++11 <cstdint> header.
-        #define POV_UINT8 uint8_t
-    #elif defined UINT_LEAST8_MAX
-        // data type matching or exceeding the requirements, as defined in the C <stdint.h> or C++11 <cstdint> header.
-        #define POV_UINT8 uint_least8_t
-    #else
-        // char is the smallest type guaranteed by the C++ standard to be at least 8 bits wide
-        #define POV_UINT8 unsigned char
-    #endif
+    // Data type matching or exceeding the requirements, as defined in the C++11 `<cstdint>` header.
+    #define POV_UINT8 uint_least8_t
 #endif
 
 /// @def POV_INT16
@@ -181,14 +175,14 @@
 ///
 #ifndef POV_INT16
     #if defined INT16_MAX
-        // data type exactly matching the requirements, as defined in the C <stdint.h> or C++11 <cstdint> header.
+        // Data type exactly matching the requirements, as defined in the C++11 `<cstdint>` header.
         #define POV_INT16 int16_t
-    #elif defined INT_LEAST16_MAX
-        // data type matching or exceeding the requirements, as defined in the C <stdint.h> or C++11 <cstdint> header.
-        #define POV_INT16 int_least16_t
+    #elif INT_LEAST16_MIN == -32767
+        // The C++11 standard allows the range of `int_leastN_t` to exclude -2^(N-1).
+        #error "Data type auto-detection failed; 'POV_INT16' must be defined explicitly by system-specific configuration."
     #else
-        // short is the smallest type guaranteed by the C++ standard to be at least 16 bits wide
-        #define POV_INT16 signed short
+        // Data type matching or exceeding the requirements, as defined in the C++11 `<cstdint>` header.
+        #define POV_INT16 int_least16_t
     #endif
 #endif
 
@@ -200,16 +194,8 @@
 ///     and have no padding bits.
 ///
 #ifndef POV_UINT16
-    #if defined UINT16_MAX
-        // data type exactly matching the requirements, as defined in the C <stdint.h> or C++11 <cstdint> header.
-        #define POV_UINT16 uint16_t
-    #elif defined UINT_LEAST16_MAX
-        // data type matching or exceeding the requirements, as defined in the C <stdint.h> or C++11 <cstdint> header.
-        #define POV_UINT16 uint_least16_t
-    #else
-        // short is the smallest type guaranteed by the C++ standard to be at least 16 bits wide
-        #define POV_UINT16 unsigned short
-    #endif
+    // Data type matching or exceeding the requirements, as defined in the C++11 `<cstdint>` header.
+    #define POV_UINT16 uint_least16_t
 #endif
 
 /// @def POV_INT32
@@ -221,14 +207,14 @@
 ///
 #ifndef POV_INT32
     #if defined INT32_MAX
-        // data type exactly matching the requirements, as defined in the C <stdint.h> or C++11 <cstdint> header.
+        // Data type exactly matching the requirements, as defined in the C++11 `<cstdint>` header.
         #define POV_INT32 int32_t
-    #elif defined INT_LEAST32_MAX
-        // data type matching or exceeding the requirements, as defined in the C <stdint.h> or C++11 <cstdint> header.
-        #define POV_INT32 int_least32_t
+    #elif INT_LEAST32_MIN == -2147483647
+        // The C++11 standard allows the range of `int_leastN_t` to exclude -2^(N-1).
+        #error "Data type auto-detection failed; 'POV_INT32' must be defined explicitly by system-specific configuration."
     #else
-        // long is the smallest type guaranteed by the C++ standard to be at least 32 bits wide
-        #define POV_INT32 signed long
+        // Data type matching or exceeding the requirements, as defined in the C++11 `<cstdint>` header.
+        #define POV_INT32 int_least32_t
     #endif
 #endif
 
@@ -240,16 +226,8 @@
 ///     and have no padding bits.
 ///
 #ifndef POV_UINT32
-    #if defined UINT32_MAX
-        // data type exactly matching the requirements, as defined in the C <stdint.h> or C++11 <cstdint> header.
-        #define POV_UINT32 uint32_t
-    #elif defined UINT_LEAST32_MAX
-        // data type matching or exceeding the requirements, as defined in the C <stdint.h> or C++11 <cstdint> header.
-        #define POV_UINT32 uint_least32_t
-    #else
-        // long is the smallest type guaranteed by the C++ standard to be at least 32 bits wide
-        #define POV_UINT32 unsigned long
-    #endif
+    // Data type matching or exceeding the requirements, as defined in the C++11 `<cstdint>` header.
+    #define POV_UINT32 uint_least32_t
 #endif
 
 /// @def POV_INT64
@@ -261,14 +239,14 @@
 ///
 #ifndef POV_INT64
     #if defined INT64_MAX
-        // data type exactly matching the requirements, as defined in the C <stdint.h> or C++11 <cstdint> header.
+        // Data type exactly matching the requirements, as defined in the C++11 `<cstdint>` header.
         #define POV_INT64 int64_t
-    #elif defined INT_LEAST64_MAX
-        // data type matching or exceeding the requirements, as defined in the C <stdint.h> or C++11 <cstdint> header.
-        #define POV_INT64 int_least64_t
+    #elif INT_LEAST64_MIN == -9223372036854775807
+        // The C++11 standard allows the range of `int_leastN_t` to exclude -2^(N-1).
+        #error "Data type auto-detection failed; 'POV_INT64' must be defined explicitly by system-specific configuration."
     #else
-        // long long is the smallest type guaranteed by the C++ standard to be at least 64 bits wide
-        #define POV_INT64 signed long long
+        // Data type matching or exceeding the requirements, as defined in the C++11 `<cstdint>` header.
+        #define POV_INT64 int_least64_t
     #endif
 #endif
 
@@ -280,16 +258,8 @@
 ///     and have no padding bits.
 ///
 #ifndef POV_UINT64
-    #if defined UINT64_MAX
-        // data type exactly matching the requirements, as defined in the C <stdint.h> or C++11 <cstdint> header.
-        #define POV_UINT64 uint64_t
-    #elif defined UINT_LEAST64_MAX
-        // data type matching or exceeding the requirements, as defined in the C <stdint.h> or C++11 <cstdint> header.
-        #define POV_UINT64 uint_least64_t
-    #else
-        // long long is the smallest type guaranteed by the C++ standard to be at least 64 bits wide
-        #define POV_UINT64 unsigned long long
-    #endif
+    // Data type matching or exceeding the requirements, as defined in the C++11 `<cstdint>` header.
+    #define POV_UINT64 uint_least64_t
 #endif
 
 /// @def DBL
@@ -363,7 +333,7 @@
 /// This data type is used to represent characters from the UCS2 character set, i.e. the 16-bit
 /// Base Multilingual Plane subset of Unicode.
 ///
-/// This should be an unsigned integer type at least 16 bits wide.
+/// This should be an unsigned character or integer type at least 16 bits wide.
 ///
 /// @note
 ///     For clarity, this data type should _not_ be used as the base type for UTF-16 encoded
@@ -377,16 +347,16 @@
 ///     @ref UTF16 instead.
 ///
 #ifndef UCS2
-    #define UCS2 POV_UINT16
+    #define UCS2 char16_t
 #endif
 
 /// @def UCS4
 /// Integer data type used to represent UCS4 or full-fledged Unicode characters.
 ///
-/// This should be an unsigned integer type at least 21 (sic!) bits wide.
+/// This should be an unsigned character or integer type at least 21 (sic!) bits wide.
 ///
 #ifndef UCS4
-    #define UCS4 POV_UINT32
+    #define UCS4 char32_t
 #endif
 
 /// @def UTF16
@@ -406,27 +376,27 @@
 ///     type instead.
 ///
 #ifndef UTF16
-    #define UTF16 POV_UINT16
+    #define UTF16 UCS2
 #endif
 
 /// @def POV_LONG
 ///
 /// @deprecated
-///     This data type is used in many places for different purposes; use either POV_INT64 there
-///     or introduce some more specific type names.
+///     This data type is used in many places for different purposes; use either int_least64_t or
+///     POV_INT64 there, or introduce some more specific type names.
 ///
 #ifndef POV_LONG
-    #define POV_LONG signed long long
+    #define POV_LONG int_least64_t
 #endif
 
 /// @def POV_ULONG
 ///
 /// @deprecated
-///     This data type is used in many places for different purposes; use either POV_INT64 there
-///     or introduce some more specific type names.
+///     This data type is used in many places for different purposes; use either uint_least64_t or
+///     POV_UINT64 there, or introduce some more specific type names.
 ///
 #ifndef POV_ULONG
-    #define POV_ULONG unsigned long long
+    #define POV_ULONG uint_least64_t
 #endif
 
 /// @}

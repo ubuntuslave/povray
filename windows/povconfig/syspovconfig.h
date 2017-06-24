@@ -58,6 +58,7 @@
 // C++ variants of C standard headers
 #include <cmath>
 #include <cstdarg>
+#include <cstdint>
 #include <cstdlib>
 
 // C++ standard headers
@@ -155,8 +156,8 @@ using boost::intrusive_ptr;
   typedef unsigned short    ushort;
   typedef unsigned int      uint;
   typedef unsigned long     ulong;
-  typedef unsigned __int64  uint64;
-  typedef __int64           int64;
+  typedef uint64_t          uint64;
+  typedef int64_t           int64;
 #endif
 
 #ifdef __INTEL_COMPILER

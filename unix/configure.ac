@@ -585,17 +585,8 @@ esac
 AC_HEADER_TIME
 AC_CHECK_HEADERS([time.h limits.h sys/resource.h sys/time.h sys/wait.h unistd.h])
 
-AC_TYPE_INT8_T
-AC_TYPE_INT16_T
-AC_TYPE_INT32_T
-AC_TYPE_INT64_T
 AC_TYPE_SIZE_T
 AC_STRUCT_TM
-
-AC_CHECK_SIZEOF([int])
-AC_CHECK_SIZEOF([long int])	# check for 64 bit support
-AC_CHECK_SIZEOF([size_t])	# check for 64 bit support
-AC_CHECK_SIZEOF([float])
 
 
 # Checks for functions.

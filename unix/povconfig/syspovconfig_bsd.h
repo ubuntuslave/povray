@@ -11,7 +11,7 @@
 /// @parblock
 ///
 /// Persistence of Vision Ray Tracer ('POV-Ray') version 3.7.
-/// Copyright 1991-2016 Persistence of Vision Raytracer Pty. Ltd.
+/// Copyright 1991-2017 Persistence of Vision Raytracer Pty. Ltd.
 ///
 /// POV-Ray is free software: you can redistribute it and/or modify
 /// it under the terms of the GNU Affero General Public License as
@@ -54,20 +54,5 @@
     #error "Image size may be limited to approx. 100 Megapixels. Proceed at your own risk."
     #define lseek64(handle,offset,whence) lseek(handle,offset,whence)
 #endif
-
-/// @file
-/// @todo The POV_LONG stuff is just copied from the Posix settings; someone needs to verify universal BSD compatibility.
-#if defined(_POSIX_V6_LPBIG_OFFBIG) || defined(_POSIX_V6_LP64_OFF64)
-    // long is at least 64 bits.
-    #define POV_LONG long
-#elif defined(_POSIX_V6_ILP32_OFFBIG) || defined(_POSIX_V6_ILP32_OFF32)
-    // long is 32 bits.
-    #define POV_LONG long long
-#else
-    // Unable to detect long size at compile-time, assuming less than 64 bits.
-    #define POV_LONG long long
-#endif
-
-#define POV_ULONG unsigned POV_LONG
 
 #endif // POVRAY_UNIX_SYSPOVCONFIG_BSD_H
