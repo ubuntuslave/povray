@@ -147,6 +147,16 @@
     #define POV_RAY_PATCHLEVEL_SUFFIX "." POV_RAY_PATCHLEVEL
 #endif
 
+/// @def POV_RAY_PRERELEASE_SUFFIX
+/// Pre-release identifier as a suffix string.
+/// This macro is defined to an empty string if the pre-release identifier is undefined,
+/// and includes a leading dash (`-`) otherwise.
+#if defined(POV_RAY_PRERELEASE)
+    #define POV_RAY_PRERELEASE_SUFFIX "-" POV_RAY_PRERELEASE
+#else
+    #define POV_RAY_PRERELEASE_SUFFIX ""
+#endif
+
 /// Official source code generation as string.
 /// This macro evaluates to the first two numerical components of the source code version,
 /// in the form `X.Y`, where `X` and `Y` are the major and minor version numbers respectively.
@@ -167,6 +177,12 @@
 /// `X.Y.Z.P` for maintenance versions, where `X` and `Y` are the major and minor version numbers
 /// respectively, `Z` is the revision, and `P` is the maintenance patch level.
 #define POV_RAY_PATCH_VERSION POV_RAY_RELEASE_VERSION POV_RAY_PATCHLEVEL_SUFFIX
+
+/// Official source code version as string.
+/// This macro evaluates to the complete official source code version string The format is
+/// `X.Y.Z`[`.P`][`-PRE`], where `X` and `Y` are the major and minor version numbers respectively,
+/// `Z` is the revision, `P` is the maintenance patch level, and `PRE` is the pre-release tag.
+#define POV_RAY_FULL_VERSION POV_RAY_PATCH_VERSION POV_RAY_PRERELEASE_SUFFIX
 
 /// @def POV_RAY_BETA_SUFFIX
 /// Suffix to distinguish beta- from non-beta versions.
