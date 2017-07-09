@@ -46,12 +46,12 @@ umask 022
 
 # Extract version information from `source/base/version.h`
 version_h="../source/base/version.h"
-pov_major_version=`sed -n 's,^\s*#define\s\s*POV_RAY_MAJOR_VERSION_INT\s\s*\([0-9][0-9]*\)\s*,\1,p' "$version_h"`
-pov_minor_version=`sed -n 's,^\s*#define\s\s*POV_RAY_MINOR_VERSION_INT\s\s*\([0-9][0-9]*\)\s*,\1,p' "$version_h"`
-pov_revision=`sed -n 's,^\s*#define\s\s*POV_RAY_REVISION_INT\s\s*\([0-9][0-9]*\)\s*,\1,p' "$version_h"`
-pov_patchlevel=`sed -n 's,^\s*#define\s\s*POV_RAY_PATCHLEVEL_INT\s\s*\([0-9][0-9]*\)\s*,\1,p' "$version_h"`
-pov_prerelease=`sed -n 's,^\s*#define\s\s*POV_RAY_PRERELEASE\s*"\([^"]*\)"\s*$,\1,p' "$version_h"`
-pov_copyright=`sed -n 's,^\s*#define\s\s*POV_RAY_COPYRIGHT\s*"\([^"]*\)"\s*$,\1,p' "$version_h"`
+pov_major_version=`sed -n 's,^ *#define  *POV_RAY_MAJOR_VERSION_INT  *\([0-9][0-9]*\) *,\1,p' "$version_h"`
+pov_minor_version=`sed -n 's,^ *#define  *POV_RAY_MINOR_VERSION_INT  *\([0-9][0-9]*\) *,\1,p' "$version_h"`
+pov_revision=`sed -n 's,^ *#define  *POV_RAY_REVISION_INT  *\([0-9][0-9]*\) *,\1,p' "$version_h"`
+pov_patchlevel=`sed -n 's,^ *#define  *POV_RAY_PATCHLEVEL_INT  *\([0-9][0-9]*\) *,\1,p' "$version_h"`
+pov_prerelease=`sed -n 's,^ *#define  *POV_RAY_PRERELEASE *"\([^"]*\)" *$,\1,p' "$version_h"`
+pov_copyright=`sed -n 's,^ *#define  *POV_RAY_COPYRIGHT *"\([^"]*\)" *$,\1,p' "$version_h"`
 pov_version_base="$pov_major_version.$pov_minor_version"
 pov_version="$pov_version_base.$pov_revision"
 if test "$pov_patchlevel" -ne 0 ; then
