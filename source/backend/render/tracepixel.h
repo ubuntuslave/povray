@@ -208,6 +208,8 @@ class TracePixel : public Trace
 		void SetupCamera(const Camera& cam);
 
 		void operator()(DBL x, DBL y, DBL width, DBL height, Colour& colour);
+                void operator()(DBL x, DBL y, DBL width, DBL height, Colour& colour, double& depthVal);
+
 	private:
 		// Focal blur data
 		class FocalBlurData
@@ -267,6 +269,7 @@ class TracePixel : public Trace
 		void InitRayContainerStateTree(Ray& ray, BBOX_TREE *node);
 
 		void TraceRayWithFocalBlur(Colour& colour, DBL x, DBL y, DBL width, DBL height);
+                void TraceRayWithFocalBlur(Colour& colour, DBL x, DBL y, DBL width, DBL height, double& depthVal);
 		void JitterCameraRay(Ray& ray, DBL x, DBL y, size_t ray_number);
 };
 

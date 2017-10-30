@@ -57,7 +57,8 @@ namespace pov
 class TraceTask : public RenderTask
 {
 	public:
-		TraceTask(ViewData *vd, unsigned int tm, DBL js, DBL aat, unsigned int aad, GammaCurvePtr& aag, unsigned int ps, bool psc, bool final, bool hr);
+		TraceTask(ViewData *vd, unsigned int tm, DBL js, DBL aat, unsigned int aad, GammaCurvePtr& aag, unsigned int ps, bool psc, bool final, bool hr, double *depthArray);
+
 		virtual ~TraceTask();
 
 		virtual void Run();
@@ -102,6 +103,8 @@ class TraceTask : public RenderTask
 
 		/// tracing core
 		TracePixel trace;
+		
+		double* depthStorageArray;
 
 		CooperateFunction cooperate;
 		MediaFunction media;
@@ -114,7 +117,11 @@ class TraceTask : public RenderTask
 		void AdaptiveSupersamplingM2();
 
 		void NonAdaptiveSupersamplingForOnePixel(DBL x, DBL y, Colour& leftcol, Colour& topcol, Colour& curcol, bool& sampleleft, bool& sampletop, bool& samplecurrent);
+		void NonAdaptiveSupersamplingForOnePixel(DBL x, DBL y, Colour& leftcol, Colour& topcol, Colour& curcol, bool& sampleleft, bool& sampletop, bool& samplecurrent, double &depthleftcol, double &depthtopcol, double &depthcurcol);
+		
 		void SupersampleOnePixel(DBL x, DBL y, Colour& col);
+                void SupersampleOnePixel(DBL x, DBL y, Colour& col, double &depthVal);
+		
 		void SubdivideOnePixel(DBL x, DBL y, DBL d, size_t bx, size_t by, size_t bstep, SubdivisionBuffer& buffer, Colour& result, int level);
 };
 

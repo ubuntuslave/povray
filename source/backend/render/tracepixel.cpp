@@ -54,6 +54,8 @@
 // this must be the last file included
 #include "base/povdebug.h"
 
+#include <iostream>
+
 namespace pov
 {
 
@@ -283,6 +285,55 @@ void TracePixel::operator()(DBL x, DBL y, DBL width, DBL height, Colour& colour)
 	else
 		TraceRayWithFocalBlur(colour, x, y, width, height);
 }
+
+
+void TracePixel::operator()(DBL x, DBL y, DBL width, DBL height, Colour& colour, double& depthVal)
+{
+
+        if(useFocalBlur == false)
+        {
+                colour.clear();
+                depthVal = 0;
+                int numTraced = 0;
+                for (size_t rayno = 0; rayno < camera.Rays_Per_Pixel; rayno++)
+                {
+                        Ray ray;
+
+                        if (CreateCameraRay(ray, x, y, width, height, rayno) == true)
+                        {
+                                Colour col;
+                                double depth = 0 ;
+
+                                Trace::TraceTicket ticket(maxTraceLevel, adcBailout, sceneData->outputAlpha && (sceneData->EffectiveLanguageVersion() < 370));
+                                depth = TraceRay(ray, col, 1.0, ticket, false, camera.Max_Ray_Distance);
+//                                cout<<"x = "<< x << ", y = "<< y << " , depth= "<< depth << endl;
+//                                cout<< "Traced Ray without Focal Blur"<<endl;
+                                colour  += col;
+                                depthVal += depth;
+                                numTraced++;
+                        }
+                }
+                if (numTraced)
+                {
+                    colour   /= (DBL) numTraced;
+                    depthVal /= (DBL) numTraced;
+//                    cout<< "averaged depthVal = " << depthVal << endl;
+                }
+                else
+                {
+                    depthVal = 0;
+                    colour.transm() = 1.0;
+                }
+        }
+        else
+        {
+            TraceRayWithFocalBlur(colour, x, y, width, height, depthVal);
+//            cout << "Going to Focal Blur function"<<endl;
+        }
+}
+
+
+
 
 bool TracePixel::CreateCameraRay(Ray& ray, DBL x, DBL y, DBL width, DBL height, size_t ray_number)
 {
@@ -933,6 +984,121 @@ void TracePixel::InitRayContainerStateTree(Ray& ray, BBOX_TREE *node)
 			InitRayContainerStateTree(ray, node->Node[i]);
 	}
 }
+
+void TracePixel::TraceRayWithFocalBlur(Colour& colour, DBL x, DBL y, DBL width, DBL height, double& depthVal)
+{
+
+//        cout << "Going to compute the Tracing with Focal Blur" <<endl;
+        int nr;     // Number of current samples.
+        int level;  // Index into number of samples list.
+        int max_s;  // Number of samples to take before next confidence test.
+        int dxi, dyi;
+        int i;
+        DBL dx, dy, n, randx, randy;
+        Colour C, V1, S1, S2;
+        int seed = int(x * 313.0 + 11.0) + int(y * 311.0 + 17.0);
+        Ray ray;
+
+        colour.clear();
+        V1.clear();
+        S1.clear();
+        S2.clear();
+
+        nr = 0;
+        level = 0;
+        depthVal = 0;
+
+        do
+        {
+                // Trace number of rays given by the list Current_Number_Of_Samples[].
+                max_s = 4;
+
+                if(focalBlurData->Current_Number_Of_Samples != NULL)
+                {
+                        if(focalBlurData->Current_Number_Of_Samples[level] > 0)
+                        {
+                                max_s = focalBlurData->Current_Number_Of_Samples[level];
+                                level++;
+                        }
+                }
+
+                for(i = 0; (i < max_s) && (nr < camera.Blur_Samples); i++)
+                {
+                        // Choose sub-pixel location.
+                        dxi = PseudoRandom(seed + nr) % SUB_PIXEL_GRID_SIZE;
+                        dyi = PseudoRandom(seed + nr + 1) % SUB_PIXEL_GRID_SIZE;
+
+                        dx = (DBL)(2 * dxi + 1) / (DBL)(2 * SUB_PIXEL_GRID_SIZE) - 0.5;
+                        dy = (DBL)(2 * dyi + 1) / (DBL)(2 * SUB_PIXEL_GRID_SIZE) - 0.5;
+
+                        Jitter2d(dx, dy, randx, randy);
+
+                        // Add jitter to sub-pixel location.
+                        dx += (randx - 0.5) / (DBL)(SUB_PIXEL_GRID_SIZE);
+                        dy += (randy - 0.5) / (DBL)(SUB_PIXEL_GRID_SIZE);
+
+                        // remove interiors accumulated from previous iteration (if any)
+                        ray.ClearInteriors();
+
+                        // Create and trace ray.
+                        if(CreateCameraRay(ray, x + dx, y + dy, width, height, nr))
+                        {
+                                // Increase_Counter(stats[Number_Of_Samples]);
+
+                                C.clear();
+                                Trace::TraceTicket ticket(maxTraceLevel, adcBailout, sceneData->outputAlpha && (sceneData->EffectiveLanguageVersion() < 370));
+                                TraceRay(ray, C, 1.0, ticket, false, camera.Max_Ray_Distance);
+
+                                colour += C;
+                        }
+                        else
+                                C = Colour(0.0, 0.0, 0.0, 0.0, 1.0);
+
+                        // Add color to color sum.
+
+                        S1[pRED]    += C[pRED];
+                        S1[pGREEN]  += C[pGREEN];
+                        S1[pBLUE]   += C[pBLUE];
+                        S1[pTRANSM] += C[pTRANSM];
+
+                        // Add color to squared color sum.
+
+                        S2[pRED]    += Sqr(C[pRED]);
+                        S2[pGREEN]  += Sqr(C[pGREEN]);
+                        S2[pBLUE]   += Sqr(C[pBLUE]);
+                        S2[pTRANSM] += Sqr(C[pTRANSM]);
+
+                        nr++;
+                }
+
+                // Get variance of samples.
+
+                n = (DBL)nr;
+
+                V1[pRED]    = (S2[pRED]    / n - Sqr(S1[pRED]    / n)) / n;
+                V1[pGREEN]  = (S2[pGREEN]  / n - Sqr(S1[pGREEN]  / n)) / n;
+                V1[pBLUE]   = (S2[pBLUE]   / n - Sqr(S1[pBLUE]   / n)) / n;
+                V1[pTRANSM] = (S2[pTRANSM] / n - Sqr(S1[pTRANSM] / n)) / n;
+
+                // Exit if samples are likely too be good enough.
+
+                if((nr >= camera.Blur_Samples_Min) &&
+                   (V1[pRED]  < focalBlurData->Sample_Threshold[nr - 1]) && (V1[pGREEN]  < focalBlurData->Sample_Threshold[nr - 1]) &&
+                   (V1[pBLUE] < focalBlurData->Sample_Threshold[nr - 1]) && (V1[pTRANSM] < focalBlurData->Sample_Threshold[nr - 1]))
+                        break;
+        }
+        while(nr < camera.Blur_Samples);
+        colour /= (DBL)nr;
+
+        ray.ClearInteriors();
+        if(CreateCameraRay(ray, x, y, width, height, 0))
+        {
+               Trace::TraceTicket ticket(maxTraceLevel, adcBailout, sceneData->outputAlpha && (sceneData->EffectiveLanguageVersion() < 370));
+               depthVal = TraceRay(ray, C, 1.0, ticket, false, camera.Max_Ray_Distance);
+        }
+
+}
+
 
 void TracePixel::TraceRayWithFocalBlur(Colour& colour, DBL x, DBL y, DBL width, DBL height)
 {

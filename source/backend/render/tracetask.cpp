@@ -44,6 +44,8 @@
 #include "backend/texture/normal.h"
 #include "backend/math/chi2.h"
 
+#include <iostream>
+
 #ifdef PROFILE_INTERSECTIONS
 #include "base/image/image.h"
 #endif
@@ -212,7 +214,7 @@ void TraceTask::SubdivisionBuffer::Clear()
 		*i = false;
 }
 
-TraceTask::TraceTask(ViewData *vd, unsigned int tm, DBL js, DBL aat, unsigned int aad, GammaCurvePtr& aag, unsigned int ps, bool psc, bool final, bool hr) :
+TraceTask::TraceTask(ViewData *vd, unsigned int tm, DBL js, DBL aat, unsigned int aad, GammaCurvePtr& aag, unsigned int ps, bool psc, bool final, bool hr, double *depthArray) :
 	RenderTask(vd),
 	trace(vd, GetViewDataPtr(), vd->GetSceneData()->parsedMaxTraceLevel, vd->GetSceneData()->parsedAdcBailout,
 	      vd->GetQualityFeatureFlags(), cooperate, media, radiosity),
@@ -226,6 +228,7 @@ TraceTask::TraceTask(ViewData *vd, unsigned int tm, DBL js, DBL aat, unsigned in
 	previewSkipCorner(psc),
 	finalTrace(final),
 	highReproducibility(hr),
+        depthStorageArray(depthArray),
 	media(GetViewDataPtr(), &trace, &photonGatherer),
 	radiosity(vd->GetSceneData(), GetViewDataPtr(),
 	          vd->GetSceneData()->radiositySettings, vd->GetRadiosityCache(), cooperate, final, Vector3d(vd->GetCamera().Location)),
@@ -379,6 +382,8 @@ void TraceTask::SimpleSamplingM0()
 	vector<Colour> pixels;
 	unsigned int serial;
 
+        double depthVal;
+
 	while(GetViewData()->GetNextRectangle(rect, serial) == true)
 	{
 		radiosity.BeforeTile(highReproducibility? serial : 0);
@@ -408,7 +413,10 @@ void TraceTask::SimpleSamplingM0()
 #endif
 				Colour col;
 
-				trace(x, y, GetViewData()->GetWidth(), GetViewData()->GetHeight(), col);
+                                trace(x, y, GetViewData()->GetWidth(), GetViewData()->GetHeight(), col, depthVal);
+                                int width = (int)GetViewData()->GetWidth();
+                                depthStorageArray[(int)x+(int)y*width] = depthVal;
+
 				GetViewDataPtr()->Stats()[Number_Of_Pixels]++;
 
 				pixels.push_back(col);
@@ -498,6 +506,9 @@ void TraceTask::NonAdaptiveSupersamplingM1()
 
 	jitterScale = jitterScale / DBL(aaDepth);
 
+        double depthVal;
+        int width = (int)GetViewData()->GetWidth();
+
 	while(GetViewData()->GetNextRectangle(rect, serial) == true)
 	{
 		radiosity.BeforeTile(highReproducibility? serial : 0);
@@ -507,7 +518,11 @@ void TraceTask::NonAdaptiveSupersamplingM1()
 		// sample line above current block
 		for(int x = rect.left; x <= rect.right; x++)
 		{
-			trace(DBL(x), DBL(rect.top) - 1.0, GetViewData()->GetWidth(), GetViewData()->GetHeight(), pixels(x, rect.top - 1));
+			trace(DBL(x), DBL(rect.top) - 1.0, GetViewData()->GetWidth(), GetViewData()->GetHeight(), pixels(x, rect.top - 1), depthVal);
+			if ( x>=0 && (rect.top)-1.0 >=0 ){
+            			depthStorageArray[(int)x+(int)((rect.top)-1.0)*width] = depthVal;
+            		}
+			
 			GetViewDataPtr()->Stats()[Number_Of_Pixels]++;
 
 			// Cannot supersample this pixel, so just claim it was already supersampled! [trf]
@@ -519,9 +534,14 @@ void TraceTask::NonAdaptiveSupersamplingM1()
 
 		for(int y = rect.top; y <= rect.bottom; y++)
 		{
-			trace(DBL(rect.left) - 1.0, y, GetViewData()->GetWidth(), GetViewData()->GetHeight(), pixels(rect.left - 1, y)); // sample pixel left of current line in block
+			trace(DBL(rect.left) - 1.0, y, GetViewData()->GetWidth(), GetViewData()->GetHeight(), pixels(rect.left - 1, y), depthVal); // sample pixel left of current line in block
+			
+			if ( (rect.left)-1.0 >=0 && y>=0 ){
+            			depthStorageArray[(int)(rect.left-1.0)+(int)(y)*width] = depthVal;
+            		}
+            		
 			GetViewDataPtr()->Stats()[Number_Of_Pixels]++;
-
+            		
 			// Cannot supersample this pixel, so just claim it was already supersampled! [trf]
 
 			// [CJC] NB this could in some circumstances cause an artifact at a block boundary,
@@ -543,7 +563,11 @@ void TraceTask::NonAdaptiveSupersamplingM1()
 			for(int x = rect.left; x <= rect.right; x++)
 			{
 				// trace current pixel
-				trace(DBL(x), DBL(y), GetViewData()->GetWidth(), GetViewData()->GetHeight(), pixels(x, y));
+				trace(DBL(x), DBL(y), GetViewData()->GetWidth(), GetViewData()->GetHeight(), pixels(x, y), depthVal);
+				if ( x >=0 && y>=0 ){
+                			depthStorageArray[(int)x+(int)(y)*width] = depthVal;
+                		}
+                		
 				GetViewDataPtr()->Stats()[Number_Of_Pixels]++;
 
 				Cooperate();
@@ -552,9 +576,34 @@ void TraceTask::NonAdaptiveSupersamplingM1()
 				bool sampletop = (pixels.GetFlag(x, y - 1) == false);
 				bool samplecurrent = true;
 
-				// perform antialiasing
-				NonAdaptiveSupersamplingForOnePixel(DBL(x), DBL(y), pixels(x - 1, y), pixels(x, y - 1), pixels(x, y), sampleleft, sampletop, samplecurrent);
+                		/// I think maybe we need to take the depthvalue from here rather, let us have a look at it later!
 
+                		double depthleftcol=0,depthtopcol=0,depthcurcol=0;
+
+				// perform antialiasing
+				NonAdaptiveSupersamplingForOnePixel(DBL(x), DBL(y), pixels(x - 1, y), pixels(x, y - 1), pixels(x, y), sampleleft, sampletop, samplecurrent, depthleftcol, depthtopcol, depthcurcol);
+				if ( samplecurrent == true)
+                		{
+                    			if ( x >=0 && y>=0 )
+                    			{
+                        		depthStorageArray[(int)x+(int)(y)*width] = depthcurcol;
+                    			}
+                		}
+
+		                if ( sampleleft == true )
+                		{
+                    			if ( x-1 >=0 && y>=0 )
+                    			{
+                        			depthStorageArray[(int)x-1+(int)(y)*width] = depthleftcol;
+                    			}
+                		}
+
+		                if ( sampletop == true){
+                		    if ( x >=0 && y-1>=0 ){
+                    			depthStorageArray[(int)x+(int)(y-1)*width] = depthtopcol;
+	                    		}
+        		        }
+		
 				// if these pixels have been supersampled, set their supersampling flag
 				if(sampleleft == true)
 					pixels.SetFlag(x - 1, y, true);
@@ -629,7 +678,7 @@ void TraceTask::AdaptiveSupersamplingM2()
 	}
 }
 
-void TraceTask::NonAdaptiveSupersamplingForOnePixel(DBL x, DBL y, Colour& leftcol, Colour& topcol, Colour& curcol, bool& sampleleft, bool& sampletop, bool& samplecurrent)
+void TraceTask::NonAdaptiveSupersamplingForOnePixel(DBL x, DBL y, Colour& leftcol, Colour& topcol, Colour& curcol, bool& sampleleft, bool& sampletop, bool& samplecurrent, double& depthleftcol, double& depthtopcol, double& depthcurcol)
 {
 	Colour gcLeft = GammaCurve::Encode(aaGamma, leftcol);
 	Colour gcTop  = GammaCurve::Encode(aaGamma, topcol);
@@ -643,13 +692,13 @@ void TraceTask::NonAdaptiveSupersamplingForOnePixel(DBL x, DBL y, Colour& leftco
 	samplecurrent = ((leftdiff == true) || (topdiff == true));
 
 	if(sampleleft == true)
-		SupersampleOnePixel(x - 1.0, y, leftcol);
+		SupersampleOnePixel(x - 1.0, y, leftcol, depthleftcol);
 
 	if(sampletop == true)
-		SupersampleOnePixel(x, y - 1.0, topcol);
+		SupersampleOnePixel(x, y - 1.0, topcol, depthtopcol);
 
 	if(samplecurrent == true)
-		SupersampleOnePixel(x, y, curcol);
+		SupersampleOnePixel(x, y, curcol, depthcurcol);
 }
 
 void TraceTask::SupersampleOnePixel(DBL x, DBL y, Colour& col)
@@ -682,6 +731,55 @@ void TraceTask::SupersampleOnePixel(DBL x, DBL y, Colour& col)
 
 	col /= (aaDepth * aaDepth + 1);
 }
+
+
+void TraceTask::SupersampleOnePixel(DBL x, DBL y, Colour& col, double& depthVal)
+{
+
+    std::vector <double> depth_vals;
+
+    DBL step(1.0 / DBL(aaDepth));
+    DBL range(0.5 - (step * 0.5));
+    DBL rx, ry;
+    Colour tempcol;
+
+    GetViewDataPtr()->Stats()[Number_Of_Pixels_Supersampled]++;
+
+    double tempdepth=0;
+
+    for(DBL yy = -range; yy <= (range + EPSILON); yy += step)
+    {
+        for(DBL xx = -range; xx <= (range + EPSILON); xx += step)
+        {
+            if (jitterScale > 0.0)
+            {
+                Jitter2d(x + xx, y + yy, rx, ry);
+                trace(x + xx + (rx * jitterScale), y + yy + (ry * jitterScale), GetViewData()->GetWidth(), GetViewData()->GetHeight(),
+                      tempcol,tempdepth);
+            }
+            else
+            {
+                trace(x + xx, y + yy, GetViewData()->GetWidth(), GetViewData()->GetHeight(), tempcol,tempdepth);
+            }
+
+            col += tempcol;
+
+            depth_vals.push_back(tempdepth);
+
+            GetViewDataPtr()->Stats()[Number_Of_Samples]++;
+
+            Cooperate();
+        }
+    }
+
+    col /= (aaDepth * aaDepth + 1);
+
+    std::sort(depth_vals.begin(),depth_vals.end());
+
+    depthVal = depth_vals.at(depth_vals.size()/2);
+
+}
+
 
 void TraceTask::SubdivideOnePixel(DBL x, DBL y, DBL d, size_t bx, size_t by, size_t bstep, SubdivisionBuffer& buffer, Colour& result, int level)
 {

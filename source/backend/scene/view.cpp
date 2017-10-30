@@ -32,6 +32,8 @@
 #include <boost/thread.hpp>
 #include <boost/bind.hpp>
 #include <boost/math/common_factor.hpp>
+#include <iostream>
+#include <fstream>
 
 // frame.h must always be the first POV file included (pulls in platform config)
 #include "backend/frame.h"
@@ -62,6 +64,8 @@
 #include "base/povdebug.h"
 
 #define DEFAULT_BLOCK_SIZE 32
+
+#include <iostream>
 
 namespace pov
 {
@@ -598,7 +602,20 @@ View::~View()
 		delete (*i);
 	viewThreadData.clear();
 
-	// ok to call this more than once (it could be called from the stats method too)
+        std::ofstream ofile(outputdepthfilename.c_str());
+
+        for(int row = 0 ; row < viewData.GetHeight() ; row++)
+        {
+            for(int col = 0 ; col < viewData.GetWidth(); col++)
+            {
+                ofile << depthArray[col+row*(int)viewData.GetWidth()] << " ";
+            }
+        }
+
+        ofile.close();
+
+        // ok to call this more than once (it could be called from the stats method too)
+
 	POV_MEM_STATS_RENDER_END();
 }
 
@@ -646,7 +663,7 @@ bool View::CheckCameraHollowObject(const VECTOR point)
 
 		// test infinite objects
 		for(vector<ObjectPtr>::iterator object = sd->objects.begin() + sd->numberOfFiniteObjects; object != sd->objects.end(); object++)
-			if(((*object)->interior != NULL) && Inside_BBox(point, (*object)->BBox) && (*object)->Inside(point, &threadData))
+			if(((*object)->interior != NULL) && Inside_BBox(point, (*object)->BBox) && (*object)->Inside((double *) point, &threadData))
 				return true;
 	}
 	else if((sd->boundingMethod == 0) || (sd->boundingSlabs == NULL))
@@ -1089,12 +1106,19 @@ void View::StartRender(POVMS_Object& renderOptions)
 		// TODO store radiosity data (if applicable)?
 	}
 
+        depthArray = new double[viewData.GetWidth()*viewData.GetHeight()];
+        UCS2String filename = renderOptions.TryGetUCS2String(kPOVAttrib_OutputFile, "");
+        outputdepthfilename =  string(UCS2toASCIIString(filename).c_str());
+        outputdepthfilename = outputdepthfilename.substr(0,outputdepthfilename.length()-4) + ".depth";
+
+        // std::cout << "Yo, Carlos! Ouput File Name is = " << outputdepthfilename << std::endl;
+
 	// do render with mosaic preview
 	if(previewstartsize > 1)
 	{
 		// do render with mosaic preview start size
 		for(int i = 0; i < maxRenderThreads; i++)
-			viewThreadData.push_back(dynamic_cast<ViewThreadData *>(renderTasks.AppendTask(new TraceTask(&viewData, 0, jitterscale, aathreshold, aadepth, aaGammaCurve, previewstartsize, false, false, highReproducibility))));
+			viewThreadData.push_back(dynamic_cast<ViewThreadData *>(renderTasks.AppendTask(new TraceTask(&viewData, 0, jitterscale, aathreshold, aadepth, aaGammaCurve, previewstartsize, false, false, highReproducibility,depthArray))));
 
 		for(unsigned int step = (previewstartsize >> 1); step >= previewendsize; step >>= 1)
 		{
@@ -1109,7 +1133,7 @@ void View::StartRender(POVMS_Object& renderOptions)
 
 			// do render with current mosaic preview size
 			for(int i = 0; i < maxRenderThreads; i++)
-				viewThreadData.push_back(dynamic_cast<ViewThreadData *>(renderTasks.AppendTask(new TraceTask(&viewData, 0, jitterscale, aathreshold, aadepth, aaGammaCurve, step, true, ((step == 1) && (tracingmethod == 0)), highReproducibility))));
+				viewThreadData.push_back(dynamic_cast<ViewThreadData *>(renderTasks.AppendTask(new TraceTask(&viewData, 0, jitterscale, aathreshold, aadepth, aaGammaCurve, step, true, ((step == 1) && (tracingmethod == 0)), highReproducibility, depthArray))));
 		}
 
 		// do render everything again if the final mosaic preview block size was not one or anti-aliasing is required
@@ -1125,14 +1149,14 @@ void View::StartRender(POVMS_Object& renderOptions)
 			renderTasks.AppendSync();
 
 			for(int i = 0; i < maxRenderThreads; i++)
-				viewThreadData.push_back(dynamic_cast<ViewThreadData *>(renderTasks.AppendTask(new TraceTask(&viewData, tracingmethod, jitterscale, aathreshold, aadepth, aaGammaCurve, 0, false, true, highReproducibility))));
+				viewThreadData.push_back(dynamic_cast<ViewThreadData *>(renderTasks.AppendTask(new TraceTask(&viewData, tracingmethod, jitterscale, aathreshold, aadepth, aaGammaCurve, 0, false, true, highReproducibility, depthArray))));
 		}
 	}
 	// do render without mosaic preview
 	else
 	{
 		for(int i = 0; i < maxRenderThreads; i++)
-			viewThreadData.push_back(dynamic_cast<ViewThreadData *>(renderTasks.AppendTask(new TraceTask(&viewData, tracingmethod, jitterscale, aathreshold, aadepth, aaGammaCurve, 0, false, true, highReproducibility))));
+			viewThreadData.push_back(dynamic_cast<ViewThreadData *>(renderTasks.AppendTask(new TraceTask(&viewData, tracingmethod, jitterscale, aathreshold, aadepth, aaGammaCurve, 0, false, true, highReproducibility, depthArray))));
 	}
 
 	// wait for render to finish

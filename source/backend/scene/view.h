@@ -33,6 +33,7 @@
 #define POVRAY_BACKEND_VIEW_H
 
 #include <vector>
+#include <string>
 
 #include "base/povmscpp.h"
 #include "base/types.h"
@@ -446,6 +447,13 @@ class View
 		boost::thread *renderControlThread;
 		/// BSP tree mailbox
 		BSPTree::Mailbox mailbox;
+
+                /// Array to store the depth
+                double *depthArray;
+
+                /// Output Depth file name
+                string outputdepthfilename;
+
 
 		/// not available
 		View();
